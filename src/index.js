@@ -23,6 +23,8 @@ class TrustWeb3Provider extends EventEmitter {
     this.callbacks = new Map();
     this.wrapResults = new Map();
     this.isTrust = true;
+    this.isMathWallet = true;
+    this.isMetaMask = true;
     this.isDebug = !!config.isDebug;
 
     this.emitConnect(config.chainId);
@@ -36,7 +38,9 @@ class TrustWeb3Provider extends EventEmitter {
   setConfig(config) {
     this.setAddress(config.address);
 
-    this.chainId = config.chainId;
+    this.chainId = Utils.intToHex(config.chainId);
+    this.networkVersion = "" + config.chainId;
+
     this.rpc = new RPCServer(config.rpcUrl);
     this.isDebug = !!config.isDebug;
   }
@@ -130,6 +134,9 @@ class TrustWeb3Provider extends EventEmitter {
       if (!payload.id) {
         payload.id = Utils.genId();
       }
+      if (!payload.jsonrpc) {
+        payload.jsonrpc = "2.0";
+      }
       this.callbacks.set(payload.id, (error, data) => {
         if (error) {
           reject(error);
@@ -204,11 +211,11 @@ class TrustWeb3Provider extends EventEmitter {
   }
 
   net_version() {
-    return this.chainId.toString(10) || null;
+    return this.networkVersion;
   }
 
   eth_chainId() {
-    return "0x" + this.chainId.toString(16);
+    return this.chainId;
   }
 
   eth_sign(payload) {
@@ -272,18 +279,19 @@ class TrustWeb3Provider extends EventEmitter {
    * @private Internal js -> native message handler
    */
   postMessage(handler, id, data) {
-    if (this.ready || handler === "requestAccounts") {
-      let object = {
-        id: id,
-        name: handler,
-        object: data,
-      };
-      if (window.trustwallet.postMessage) {
-        window.trustwallet.postMessage(object);
-      } else {
-        // old clients
-        window.webkit.messageHandlers[handler].postMessage(object);
-      }
+    if (this.ready || handler === "requestAccounts" || handler === "addEthereumChain") {
+      // android
+      // window["ethWeb3"].postMessage(JSON.stringify({
+      //   "name": handler,
+      //   "payload": data,
+      //   "id": id
+      // }));
+      // iOS
+      window.webkit.messageHandlers["ethWeb3"].postMessage({
+        "name": handler,
+        "payload": data,
+        "id": "" + id
+      });
     } else {
       // don't forget to verify in the app
       this.sendError(id, new ProviderRpcError(4100, "provider is not ready"));
@@ -342,8 +350,5 @@ class TrustWeb3Provider extends EventEmitter {
   }
 }
 
-window.trustwallet = {
-  Provider: TrustWeb3Provider,
-  Web3: Web3,
-  postMessage: null
-};
+window.Trust = TrustWeb3Provider;
+window.Web3 = Web3;
