@@ -269,6 +269,7 @@ class TrustWeb3Provider extends EventEmitter {
       contract: options.address,
       symbol: options.symbol,
       decimals: options.decimals || 0,
+      image: options.image || "",
     });
   }
 
