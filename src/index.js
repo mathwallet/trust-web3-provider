@@ -32,6 +32,7 @@ class TrustWeb3Provider extends EventEmitter {
 
   setAddress(address) {
     this.address = (address || "").toLowerCase();
+    this.selectedAddress = this.address
     this.ready = !!address;
   }
 
