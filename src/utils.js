@@ -42,7 +42,7 @@ class Utils {
   // message: Bytes | string
   static messageToBuffer(message) {
     var buffer;
-    if ((typeof (message) === "string")) {
+    if ((typeof (message) === "string") && message.indexOf("0x") === 0) {
       buffer = Buffer.from(message.replace("0x", ""), "hex");
     } else {
       buffer = Buffer.from(message);
