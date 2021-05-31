@@ -103,9 +103,11 @@ class TrustWeb3Provider extends EventEmitter {
    * @deprecated Use request() method instead.
    */
   sendAsync(payload, callback) {
-    console.log(
-      "sendAsync(data, callback) is deprecated, please use window.ethereum.request(data) instead."
-    );
+    if (this.isDebug) {
+      console.log(
+        "sendAsync(data, callback) is deprecated, please use window.ethereum.request(data) instead."
+      );
+    }
     // this points to window in methods like web3.eth.getAccounts()
     var that = this;
     if (!(this instanceof TrustWeb3Provider)) {
