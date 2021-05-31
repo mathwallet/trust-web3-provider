@@ -103,3 +103,5 @@ coverage.json
 *~
 android/lib/src/main/res/raw/
 
+dist/trust-min.js
+dist/web3_min.js
