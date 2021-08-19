@@ -13,6 +13,7 @@ import Utils from "./utils";
 import IdMapping from "./id_mapping";
 import { EventEmitter } from "events";
 import isUtf8 from "isutf8";
+import { TypedDataUtils } from "eth-sig-util";
 
 class TrustWeb3Provider extends EventEmitter {
   constructor(config) {
@@ -23,8 +24,6 @@ class TrustWeb3Provider extends EventEmitter {
     this.callbacks = new Map();
     this.wrapResults = new Map();
     this.isTrust = true;
-    // this.isMathWallet = true;
-    // this.isMetaMask = true;
     this.isDebug = !!config.isDebug;
 
     this.emitConnect(config.chainId);
@@ -164,9 +163,11 @@ class TrustWeb3Provider extends EventEmitter {
           return this.personal_sign(payload);
         case "personal_ecRecover":
           return this.personal_ecRecover(payload);
-        case "eth_signTypedData":
         case "eth_signTypedData_v3":
-          return this.eth_signTypedData(payload);
+          return this.eth_signTypedData(payload, false);
+        case "eth_signTypedData":
+        case "eth_signTypedData_v4":
+          return this.eth_signTypedData(payload, true);
         case "eth_sendTransaction":
           return this.eth_sendTransaction(payload);
         case "eth_requestAccounts":
@@ -250,9 +251,12 @@ class TrustWeb3Provider extends EventEmitter {
     });
   }
 
-  eth_signTypedData(payload) {
+  eth_signTypedData(payload, useV4) {
+    const message = JSON.parse(payload.params[1]);
+    const hash = TypedDataUtils.sign(message, useV4);
     this.postMessage("signTypedMessage", payload.id, {
-      data: payload.params[1],
+      data: "0x" + hash.toString("hex"),
+      raw: payload.params[1]
     });
   }
 
@@ -285,17 +289,17 @@ class TrustWeb3Provider extends EventEmitter {
   postMessage(handler, id, data) {
     if (this.ready || handler === "requestAccounts" || handler === "addEthereumChain") {
       // android
-      window["ethWeb3"].postMessage(JSON.stringify({
-        "name": handler,
-        "payload": data,
-        "id": id
-      }));
-      // iOS
-      // window.webkit.messageHandlers["ethWeb3"].postMessage({
+      // window["ethWeb3"].postMessage(JSON.stringify({
       //   "name": handler,
       //   "payload": data,
-      //   "id": "" + id
-      // });
+      //   "id": id
+      // }));
+      // iOS
+      window.webkit.messageHandlers["ethWeb3"].postMessage({
+        "name": handler,
+        "payload": data,
+        "id": "" + id
+      });
     } else {
       // don't forget to verify in the app
       this.sendError(id, new ProviderRpcError(4100, "provider is not ready"));
