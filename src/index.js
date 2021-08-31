@@ -256,7 +256,8 @@ class TrustWeb3Provider extends EventEmitter {
     const hash = TypedDataUtils.sign(message, useV4);
     this.postMessage("signTypedMessage", payload.id, {
       data: "0x" + hash.toString("hex"),
-      raw: payload.params[1]
+      raw: payload.params[1],
+      method: payload.method
     });
   }
 
