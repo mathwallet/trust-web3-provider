@@ -339,7 +339,7 @@ class TrustWeb3Provider extends EventEmitter {
    * @private Internal js -> native message handler
    */
   postMessage(handler, id, data) {
-    if (this.ready || handler === "requestAccounts" || handler === "addEthereumChain") {
+    if (this.ready || handler === "requestAccounts" || handler === "addEthereumChain" || handler === "switchEthereumChain") {
       // android
       // window["ethWeb3"].postMessage(JSON.stringify({
       //   "name": handler,
