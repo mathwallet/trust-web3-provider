@@ -91,6 +91,25 @@ class TrustWeb3Provider extends EventEmitter {
       // 3.
       ethereum.send(payload: JsonRpcRequest): unknown;
   */
+  /*
+      // 有效请求
+      window.ethereum.send({method:"eth_requestAccounts"}, (error, result) => {
+        console.log(error,result);
+      });
+      window.ethereum.send("eth_requestAccounts").then((error, result) => {
+        console.log(error,result);
+      });
+      
+
+      // 无效请求
+      window.ethereum.send({method:"eth_requestAccounts"}).then((error, result) => {
+        console.log(error,result);
+      });
+      window.ethereum.send("eth_requestAccounts", (error, result) => {
+        console.log(error,result);
+      });
+  */
+
   /**
    * @deprecated Use request() method instead.
    */
@@ -98,6 +117,7 @@ class TrustWeb3Provider extends EventEmitter {
     // console.log("send", payloadOrMethod);
 
     var isPayload = !(typeof payloadOrMethod == "string");
+    var hasCallback = (typeof callbackOrParams == "function");
 
     let response;
     if (isPayload) {
@@ -115,33 +135,26 @@ class TrustWeb3Provider extends EventEmitter {
         params: callbackOrParams || []
       };
     }
-    switch (response.method) {
-      case "eth_accounts":
-        response.result = this.eth_accounts();
-        break;
-      case "eth_coinbase":
-        response.result = this.eth_coinbase();
-        break;
-      case "net_version":
-        response.result = this.net_version();
-        break;
-      case "eth_chainId":
-        response.result = this.eth_chainId();
-        break;
-      case "eth_uninstallFilter":
-        response.result = true;
-        break;
-      default: {
-        throw new Error(
-          `MathWallet does not support calling ${response.method} synchronously without a callback. Please provide a callback parameter to call ${response.method} asynchronously.`
-        );
-      }
+
+    // this points to window in methods like web3.eth.getAccounts()
+    var that = this;
+    if (!(this instanceof TrustWeb3Provider)) {
+      that = window.ethereum;
     }
-    if (isPayload && typeof callbackOrParams == "functon") {
-      callbackOrParams(response);
-      return;
+
+    if (isPayload && hasCallback) {
+      that._request(response)
+          .then(data => { callbackOrParams(null, data); })
+          .catch((error) => callback(error, null));
+    } else if (!isPayload && !hasCallback) {
+      return this._request(response).then( (data) => {
+        return Promise.resolve(data);
+      });
+    } else {
+      throw new Error(
+        `MathWallet does not support calling ${response.method} synchronously without a callback. Please provide a callback parameter to call ${response.method} asynchronously.`
+      );
     }
-    return Promise.resolve(response);
   }
 
   /**
@@ -231,7 +244,7 @@ class TrustWeb3Provider extends EventEmitter {
         case "eth_subscribe":
           throw new ProviderRpcError(
             4200,
-            `Trust does not support calling ${payload.method}. Please use your own solution`
+            `MathWallet does not support calling ${payload.method}. Please use your own solution`
           );
         default:
           // call upstream rpc
