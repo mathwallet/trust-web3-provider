@@ -23,7 +23,6 @@ class TrustWeb3Provider extends EventEmitter {
     this.idMapping = new IdMapping();
     this.callbacks = new Map();
     this.wrapResults = new Map();
-    this.isTrust = true;
     this.isDebug = !!config.isDebug;
 
     this.emitConnect(config.chainId);
@@ -71,31 +70,91 @@ class TrustWeb3Provider extends EventEmitter {
     return this.request({ method: "eth_requestAccounts", params: [] });
   }
 
+  /*
+      ethereum.send() (DEPRECATED)
+      ::: warning Use ethereum.request() instead. :::
+
+      ethereum.send(
+        methodOrPayload: string | JsonRpcRequest,
+        paramsOrCallback: Array<unknown> | JsonRpcCallback,
+      ): Promise<JsonRpcResponse> | void;
+      This method behaves unpredictably and should be avoided at all costs. It is essentially an overloaded version of ethereum.sendAsync().
+
+      ethereum.send() can be called in three different ways:
+
+      // 1.
+      ethereum.send(payload: JsonRpcRequest, callback: JsonRpcCallback): void;
+
+      // 2.
+      ethereum.send(method: string, params?: Array<unknown>): Promise<JsonRpcResponse>;
+
+      // 3.
+      ethereum.send(payload: JsonRpcRequest): unknown;
+  */
+  /*
+      // 有效请求
+      window.ethereum.send({method:"eth_requestAccounts"}, (error, result) => {
+        console.log(error,result);
+      });
+      window.ethereum.send("eth_requestAccounts").then((error, result) => {
+        console.log(error,result);
+      });
+      
+
+      // 无效请求
+      window.ethereum.send({method:"eth_requestAccounts"}).then((error, result) => {
+        console.log(error,result);
+      });
+      window.ethereum.send("eth_requestAccounts", (error, result) => {
+        console.log(error,result);
+      });
+  */
+
   /**
    * @deprecated Use request() method instead.
    */
-  send(payload) {
-    let response = { jsonrpc: "2.0", id: payload.id };
-    switch (payload.method) {
-      case "eth_accounts":
-        response.result = this.eth_accounts();
-        break;
-      case "eth_coinbase":
-        response.result = this.eth_coinbase();
-        break;
-      case "net_version":
-        response.result = this.net_version();
-        break;
-      case "eth_chainId":
-        response.result = this.eth_chainId();
-        break;
-      default:
-        throw new ProviderRpcError(
-          4200,
-          `Trust does not support calling ${payload.method} synchronously without a callback. Please provide a callback parameter to call ${payload.method} asynchronously.`
-        );
+  send(payloadOrMethod, callbackOrParams = null) {
+    // console.log("send", payloadOrMethod);
+
+    var isPayload = !(typeof payloadOrMethod == "string");
+    var hasCallback = (typeof callbackOrParams == "function");
+
+    let response;
+    if (isPayload) {
+      response = {
+        jsonrpc: "2.0",
+        id: payloadOrMethod.id || Utils.genId(),
+        method: payloadOrMethod.method || "",
+        params: payloadOrMethod.params || []
+      };
+    } else {
+      response = {
+        jsonrpc: "2.0",
+        id: Utils.genId(),
+        method: payloadOrMethod,
+        params: callbackOrParams || []
+      };
     }
-    return response;
+
+    // this points to window in methods like web3.eth.getAccounts()
+    var that = this;
+    if (!(this instanceof TrustWeb3Provider)) {
+      that = window.ethereum;
+    }
+
+    if (isPayload && hasCallback) {
+      that._request(response)
+          .then(data => { callbackOrParams(null, data); })
+          .catch((error) => callback(error, null));
+    } else if (!isPayload && !hasCallback) {
+      return this._request(response).then( (data) => {
+        return Promise.resolve(data);
+      });
+    } else {
+      throw new Error(
+        `MathWallet does not support calling ${response.method} synchronously without a callback. Please provide a callback parameter to call ${response.method} asynchronously.`
+      );
+    }
   }
 
   /**
@@ -176,6 +235,8 @@ class TrustWeb3Provider extends EventEmitter {
           return this.wallet_watchAsset(payload);
         case "wallet_addEthereumChain":
           return this.wallet_addEthereumChain(payload);
+        case "wallet_switchEthereumChain":
+          return this.wallet_switchEthereumChain(payload);
         case "eth_newFilter":
         case "eth_newBlockFilter":
         case "eth_newPendingTransactionFilter":
@@ -183,7 +244,7 @@ class TrustWeb3Provider extends EventEmitter {
         case "eth_subscribe":
           throw new ProviderRpcError(
             4200,
-            `Trust does not support calling ${payload.method}. Please use your own solution`
+            `MathWallet does not support calling ${payload.method}. Please use your own solution`
           );
         default:
           // call upstream rpc
@@ -256,7 +317,8 @@ class TrustWeb3Provider extends EventEmitter {
     const hash = TypedDataUtils.sign(message, useV4);
     this.postMessage("signTypedMessage", payload.id, {
       data: "0x" + hash.toString("hex"),
-      raw: payload.params[1]
+      raw: payload.params[1],
+      method: payload.method
     });
   }
 
@@ -283,11 +345,14 @@ class TrustWeb3Provider extends EventEmitter {
     this.postMessage("addEthereumChain", payload.id, payload.params[0]);
   }
 
+  wallet_switchEthereumChain(payload) {
+    this.postMessage("switchEthereumChain", payload.id, payload.params[0]);
+  }
   /**
    * @private Internal js -> native message handler
    */
   postMessage(handler, id, data) {
-    if (this.ready || handler === "requestAccounts" || handler === "addEthereumChain") {
+    if (this.ready || handler === "requestAccounts" || handler === "addEthereumChain" || handler === "switchEthereumChain") {
       // android
       window["ethWeb3"].postMessage(JSON.stringify({
         "name": handler,
