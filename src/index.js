@@ -96,14 +96,14 @@ class TrustWeb3Provider extends EventEmitter {
       window.ethereum.send({method:"eth_requestAccounts"}, (error, result) => {
         console.log(error,result);
       });
-      window.ethereum.send("eth_requestAccounts").then((error, result) => {
-        console.log(error,result);
+      window.ethereum.send("eth_requestAccounts").then(result => {
+        console.log(result);
       });
       
 
       // 无效请求
-      window.ethereum.send({method:"eth_requestAccounts"}).then((error, result) => {
-        console.log(error,result);
+      window.ethereum.send({method:"eth_requestAccounts"}).then(result => {
+        console.log(result);
       });
       window.ethereum.send("eth_requestAccounts", (error, result) => {
         console.log(error,result);
@@ -147,9 +147,9 @@ class TrustWeb3Provider extends EventEmitter {
           .then(data => { callbackOrParams(null, data); })
           .catch((error) => callback(error, null));
     } else if (!isPayload && !hasCallback) {
-      return this._request(response).then( (data) => {
-        return Promise.resolve(data);
-      });
+      return this._request(response)
+          .then( (data) => { return Promise.resolve(data); })
+          .catch((error) => { return Promise.reject(error); });
     } else {
       throw new Error(
         `MathWallet does not support calling ${response.method} synchronously without a callback. Please provide a callback parameter to call ${response.method} asynchronously.`
