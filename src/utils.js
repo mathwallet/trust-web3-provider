@@ -53,6 +53,20 @@ class Utils {
   static bufferToHex(buf) {
     return "0x" + Buffer.from(buf).toString("hex");
   }
+
+  static handleSignParams(address, params) {
+    if (!params) {
+      return { data: "" };
+    }
+    if (params.length < 2) {
+      return { data: params[0] };
+    }
+    if (address.toLowerCase() == params[0].toLowerCase()) {
+      return { data: params[1] };
+    } else {
+      return { data: params[0] };
+    }
+  }
 }
 
 module.exports = Utils;
