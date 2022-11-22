@@ -67,6 +67,31 @@ class Utils {
       return { data: params[0] };
     }
   }
+
+  static getIconLink() {
+    var favicons = [];
+    var nodeList = document.getElementsByTagName('link');
+    for (var i = 0; i < nodeList.length; i++)
+    {
+      if((nodeList[i].getAttribute('rel') == 'icon') || (nodeList[i].getAttribute('rel') == 'shortcut icon'))
+      {
+        const node = nodeList[i];
+        if (node.getAttribute('href') != null) {
+          favicons.push({
+              url: node.getAttribute('href'),
+              sizes: node.getAttribute('sizes')
+          });
+        }
+      }
+    }
+    if (favicons.length == 0) {
+      return `${window.location.origin}/favicon.ico`;
+    } else if( favicons[0].url.indexOf("://") > 0) {
+      return favicons[0].url;
+    } else {
+      return `${window.location.origin}${favicons[0].url.indexOf("/") == 0 ? "": "/"}${favicons[0].url}`;
+    }
+  }
 }
 
 module.exports = Utils;
