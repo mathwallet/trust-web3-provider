@@ -355,12 +355,26 @@ class TrustWeb3Provider extends EventEmitter {
     if (this.ready || handler === "requestAccounts" || handler === "addEthereumChain" || handler === "switchEthereumChain") {
       // android
       window["ethWeb3"].postMessage(JSON.stringify({
+<<<<<<< Updated upstream
+=======
+        "dapp": {
+          "origin": window.location.origin,
+          "icon": Utils.getIconLink()
+         },
+>>>>>>> Stashed changes
         "name": handler,
         "payload": data,
         "id": id
       }));
       // iOS
       // window.webkit.messageHandlers["ethWeb3"].postMessage({
+<<<<<<< Updated upstream
+=======
+      //  "dapp": {
+      //   "origin": window.location.origin,
+      //   "icon": Utils.getIconLink()
+      //  },
+>>>>>>> Stashed changes
       //   "name": handler,
       //   "payload": data,
       //   "id": "" + id
