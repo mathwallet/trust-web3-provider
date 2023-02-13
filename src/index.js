@@ -24,6 +24,7 @@ class TrustWeb3Provider extends EventEmitter {
     this.callbacks = new Map();
     this.wrapResults = new Map();
     this.isDebug = !!config.isDebug;
+    this.isProxyRPC = !!config.isProxyRPC;
 
     this.emitConnect(config.chainId);
   }
@@ -42,6 +43,7 @@ class TrustWeb3Provider extends EventEmitter {
 
     this.rpc = new RPCServer(config.rpcUrl);
     this.isDebug = !!config.isDebug;
+    this.isProxyRPC = !!config.isProxyRPC;
   }
 
   request(payload) {
@@ -186,7 +188,7 @@ class TrustWeb3Provider extends EventEmitter {
   /**
    * @private Internal rpc handler
    */
-  _request(payload, wrapResult = true) {
+  _request(payload, wrapResult = false) {
     this.idMapping.tryIntifyId(payload);
     if (this.isDebug) {
       console.log(`==> _request payload ${JSON.stringify(payload)}`);
@@ -247,6 +249,12 @@ class TrustWeb3Provider extends EventEmitter {
             `MathWallet does not support calling ${payload.method}. Please use your own solution`
           );
         default:
+          if (this.isProxyRPC) {
+            if (this.isDebug) {
+              console.log(`<== rpc request ${JSON.stringify(payload)} ${wrapResult}`);
+            }
+            return this.wallet_rpcCall(payload);
+          } 
           // call upstream rpc
           this.callbacks.delete(payload.id);
           this.wrapResults.delete(payload.id);
@@ -284,6 +292,10 @@ class TrustWeb3Provider extends EventEmitter {
 
   eth_chainId() {
     return this.chainId;
+  }
+
+  wallet_rpcCall(payload) {
+    this.postMessage("rpcCall", payload.id, payload);
   }
 
   eth_sign(payload) {
@@ -398,9 +410,7 @@ class TrustWeb3Provider extends EventEmitter {
     }
     if (this.isDebug) {
       console.log(
-        `<== sendResponse id: ${id}, result: ${JSON.stringify(
-          result
-        )}, data: ${JSON.stringify(data)}`
+        `<== sendResponse id: ${id}, wrapResult: ${wrapResult}, result: ${JSON.stringify(result)}, data: ${JSON.stringify(data)}`
       );
     }
     if (callback) {
