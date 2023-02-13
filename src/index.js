@@ -24,6 +24,7 @@ class TrustWeb3Provider extends EventEmitter {
     this.callbacks = new Map();
     this.wrapResults = new Map();
     this.isDebug = !!config.isDebug;
+    this.isProxyRPC = !!config.isProxyRPC;
 
     this.emitConnect(config.chainId);
   }
@@ -42,6 +43,7 @@ class TrustWeb3Provider extends EventEmitter {
 
     this.rpc = new RPCServer(config.rpcUrl);
     this.isDebug = !!config.isDebug;
+    this.isProxyRPC = !!config.isProxyRPC;
   }
 
   request(payload) {
@@ -186,7 +188,7 @@ class TrustWeb3Provider extends EventEmitter {
   /**
    * @private Internal rpc handler
    */
-  _request(payload, wrapResult = true) {
+  _request(payload, wrapResult = false) {
     this.idMapping.tryIntifyId(payload);
     if (this.isDebug) {
       console.log(`==> _request payload ${JSON.stringify(payload)}`);
@@ -247,9 +249,18 @@ class TrustWeb3Provider extends EventEmitter {
             `MathWallet does not support calling ${payload.method}. Please use your own solution`
           );
         default:
+          if (this.isProxyRPC) {
+            if (this.isDebug) {
+              console.log(`<== rpc request ${JSON.stringify(payload)} ${wrapResult}`);
+            }
+            return this.wallet_rpcCall(payload);
+          } 
           // call upstream rpc
           this.callbacks.delete(payload.id);
           this.wrapResults.delete(payload.id);
+          if (this.isDebug) {
+            console.log(`<== rpc request ${JSON.stringify(payload)}`);
+          }
           return this.rpc
             .call(payload)
             .then((response) => {
@@ -283,8 +294,13 @@ class TrustWeb3Provider extends EventEmitter {
     return this.chainId;
   }
 
+  wallet_rpcCall(payload) {
+    this.postMessage("rpcCall", payload.id, payload);
+  }
+
   eth_sign(payload) {
-    const buffer = Utils.messageToBuffer(payload.params[1]);
+    const message = Utils.handleSignParams(this.address, payload.params).data;
+    const buffer = Utils.messageToBuffer(message);
     const hex = Utils.bufferToHex(buffer);
     if (isUtf8(buffer)) {
       this.postMessage("signPersonalMessage", payload.id, { data: hex });
@@ -294,7 +310,7 @@ class TrustWeb3Provider extends EventEmitter {
   }
 
   personal_sign(payload) {
-    const message = payload.params[0];
+    const message = Utils.handleSignParams(this.address, payload.params).data;
     const buffer = Utils.messageToBuffer(message);
     if (buffer.length === 0) {
       // hex it
@@ -354,31 +370,25 @@ class TrustWeb3Provider extends EventEmitter {
   postMessage(handler, id, data) {
     if (this.ready || handler === "requestAccounts" || handler === "addEthereumChain" || handler === "switchEthereumChain") {
       // android
-      window["ethWeb3"].postMessage(JSON.stringify({
-<<<<<<< Updated upstream
-=======
-        "dapp": {
-          "origin": window.location.origin,
-          "icon": Utils.getIconLink()
-         },
->>>>>>> Stashed changes
-        "name": handler,
-        "payload": data,
-        "id": id
-      }));
-      // iOS
-      // window.webkit.messageHandlers["ethWeb3"].postMessage({
-<<<<<<< Updated upstream
-=======
-      //  "dapp": {
-      //   "origin": window.location.origin,
-      //   "icon": Utils.getIconLink()
-      //  },
->>>>>>> Stashed changes
+      // window["ethWeb3"].postMessage(JSON.stringify({
+        // "dapp": {
+        //   "origin": window.location.origin,
+        //   "icon": Utils.getIconLink()
+        //  },
       //   "name": handler,
       //   "payload": data,
-      //   "id": "" + id
-      // });
+      //   "id": id
+      // }));
+      // iOS
+      window.webkit.messageHandlers["ethWeb3"].postMessage({
+       "dapp": {
+        "origin": window.location.origin,
+        "icon": Utils.getIconLink()
+       },
+        "name": handler,
+        "payload": data,
+        "id": "" + id
+      });
     } else {
       // don't forget to verify in the app
       this.sendError(id, new ProviderRpcError(4100, "provider is not ready"));
@@ -400,9 +410,7 @@ class TrustWeb3Provider extends EventEmitter {
     }
     if (this.isDebug) {
       console.log(
-        `<== sendResponse id: ${id}, result: ${JSON.stringify(
-          result
-        )}, data: ${JSON.stringify(data)}`
+        `<== sendResponse id: ${id}, wrapResult: ${wrapResult}, result: ${JSON.stringify(result)}, data: ${JSON.stringify(data)}`
       );
     }
     if (callback) {
