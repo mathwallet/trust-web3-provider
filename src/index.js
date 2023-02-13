@@ -250,6 +250,9 @@ class TrustWeb3Provider extends EventEmitter {
           // call upstream rpc
           this.callbacks.delete(payload.id);
           this.wrapResults.delete(payload.id);
+          if (this.isDebug) {
+            console.log(`<== rpc request ${JSON.stringify(payload)}`);
+          }
           return this.rpc
             .call(payload)
             .then((response) => {
