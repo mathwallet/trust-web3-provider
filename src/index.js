@@ -239,6 +239,10 @@ class TrustWeb3Provider extends EventEmitter {
           return this.wallet_addEthereumChain(payload);
         case "wallet_switchEthereumChain":
           return this.wallet_switchEthereumChain(payload);
+        case "wallet_getPermissions":
+          return this.wallet_getPermissions(payload);
+        case "wallet_requestPermissions":
+          return this.wallet_requestPermissions(payload);
         case "eth_newFilter":
         case "eth_newBlockFilter":
         case "eth_newPendingTransactionFilter":
@@ -364,11 +368,19 @@ class TrustWeb3Provider extends EventEmitter {
   wallet_switchEthereumChain(payload) {
     this.postMessage("switchEthereumChain", payload.id, payload.params[0]);
   }
+
+  wallet_getPermissions(payload) {
+    this.postMessage("getPermissions", payload.id, {});
+  }
+
+  wallet_requestPermissions(payload) {
+    this.postMessage("requestPermissions", payload.id, payload.params);
+  }
   /**
    * @private Internal js -> native message handler
    */
   postMessage(handler, id, data) {
-    if (this.ready || handler === "requestAccounts" || handler === "addEthereumChain" || handler === "switchEthereumChain") {
+    if (this.ready || handler === "requestAccounts" || handler === "addEthereumChain" || handler === "switchEthereumChain" || handler === "getPermissions" || handler === "requestPermissions") {
       // android
       // window["ethWeb3"].postMessage(JSON.stringify({
         // "dapp": {
