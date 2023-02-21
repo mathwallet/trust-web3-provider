@@ -382,25 +382,25 @@ class TrustWeb3Provider extends EventEmitter {
   postMessage(handler, id, data) {
     if (this.ready || handler === "requestAccounts" || handler === "addEthereumChain" || handler === "switchEthereumChain" || handler === "getPermissions" || handler === "requestPermissions") {
       // android
-      // window["ethWeb3"].postMessage(JSON.stringify({
-        // "dapp": {
-        //   "origin": window.location.origin,
-        //   "icon": Utils.getIconLink()
-        //  },
-      //   "name": handler,
-      //   "payload": data,
-      //   "id": id
-      // }));
-      // iOS
-      window.webkit.messageHandlers["ethWeb3"].postMessage({
-       "dapp": {
-        "origin": window.location.origin,
-        "icon": Utils.getIconLink()
-       },
+      window["ethWeb3"].postMessage(JSON.stringify({
+        "dapp": {
+          "origin": window.location.origin,
+          "icon": Utils.getIconLink()
+         },
         "name": handler,
         "payload": data,
-        "id": "" + id
-      });
+        "id": id
+      }));
+      // iOS
+      // window.webkit.messageHandlers["ethWeb3"].postMessage({
+      //  "dapp": {
+      //   "origin": window.location.origin,
+      //   "icon": Utils.getIconLink()
+      //  },
+      //   "name": handler,
+      //   "payload": data,
+      //   "id": "" + id
+      // });
     } else {
       // don't forget to verify in the app
       this.sendError(id, new ProviderRpcError(4100, "provider is not ready"));
