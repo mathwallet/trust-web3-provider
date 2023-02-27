@@ -26,7 +26,7 @@ class TrustWeb3Provider extends EventEmitter {
     this.isDebug = !!config.isDebug;
     this.isProxyRPC = !!config.isProxyRPC;
 
-    this.emitConnect(config.chainId);
+    this.emitConnect(this.chainId);
   }
 
   setAddress(address) {
@@ -280,6 +280,11 @@ class TrustWeb3Provider extends EventEmitter {
 
   emitConnect(chainId) {
     this.emit("connect", { chainId: chainId });
+  }
+
+  emitChainChanged(chainId) {
+    this.emit("chainChanged", chainId);
+    this.emit("networkChanged", chainId);
   }
 
   eth_accounts() {
