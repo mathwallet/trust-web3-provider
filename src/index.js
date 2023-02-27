@@ -188,7 +188,7 @@ class TrustWeb3Provider extends EventEmitter {
   /**
    * @private Internal rpc handler
    */
-  _request(payload, wrapResult = false) {
+  _request(payload, wrapResult = true) {
     this.idMapping.tryIntifyId(payload);
     if (this.isDebug) {
       console.log(`==> _request payload ${JSON.stringify(payload)}`);
