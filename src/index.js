@@ -191,7 +191,7 @@ class TrustWeb3Provider extends EventEmitter {
   _request(payload, wrapResult = true) {
     this.idMapping.tryIntifyId(payload);
     if (this.isDebug) {
-      console.log(`==> _request payload ${JSON.stringify(payload)}`);
+      console.log(`==> _request payload ${JSON.stringify(payload)}, wrapResult: ${wrapResult}`);
     }
     return new Promise((resolve, reject) => {
       if (!payload.id) {
