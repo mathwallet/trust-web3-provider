@@ -25,13 +25,14 @@ class TrustWeb3Provider extends EventEmitter {
     this.wrapResults = new Map();
     this.isDebug = !!config.isDebug;
     this.isProxyRPC = !!config.isProxyRPC;
+    this.setMaxListeners(100);
 
     this.emitConnect(this.chainId);
   }
 
   setAddress(address) {
     this.address = (address || "").toLowerCase();
-    this.selectedAddress = this.address
+    this.selectedAddress = this.address;
     this.ready = !!address;
   }
 
@@ -147,7 +148,7 @@ class TrustWeb3Provider extends EventEmitter {
     if (isPayload && hasCallback) {
       that._request(response)
           .then(data => { callbackOrParams(null, data); })
-          .catch((error) => callback(error, null));
+          .catch((error) => callbackOrParams(error, null));
     } else if (!isPayload && !hasCallback) {
       return this._request(response)
           .then( (data) => { return Promise.resolve(data); })
