@@ -26,6 +26,7 @@ class TrustWeb3Provider extends EventEmitter {
     this.isDebug = !!config.isDebug;
     this.isProxyRPC = !!config.isProxyRPC;
     this.setMaxListeners(100);
+    this.ready = true;
 
     this.emitConnect(this.chainId);
   }
@@ -33,16 +34,17 @@ class TrustWeb3Provider extends EventEmitter {
   setAddress(address) {
     this.address = (address || "").toLowerCase();
     this.selectedAddress = this.address;
-    this.ready = !!address;
+  }
+
+  setChain(chainId, rpcUrl) { 
+    this.chainId = Utils.intToHex(chainId);
+    this.networkVersion = "" + chainId;
+    this.rpc = new RPCServer(rpcUrl);
   }
 
   setConfig(config) {
     this.setAddress(config.address);
-
-    this.chainId = Utils.intToHex(config.chainId);
-    this.networkVersion = "" + config.chainId;
-
-    this.rpc = new RPCServer(config.rpcUrl);
+    this.setChain(config.chainId, config.rpcUrl);
     this.isDebug = !!config.isDebug;
     this.isProxyRPC = !!config.isProxyRPC;
   }
