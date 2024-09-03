@@ -18,28 +18,47 @@ import { TypedDataUtils } from "eth-sig-util";
 class TrustWeb3Provider extends EventEmitter {
   constructor(config) {
     super();
-    this.setConfig(config);
+    this.initConfig(config);
 
     this.idMapping = new IdMapping();
     this.callbacks = new Map();
     this.wrapResults = new Map();
-    this.isDebug = !!config.isDebug;
-    this.isProxyRPC = !!config.isProxyRPC;
     this.setMaxListeners(100);
     this.ready = true;
 
     this.emitConnect(this.chainId);
   }
 
+  initConfig(config) {
+    this.address = config.address;
+    this.selectedAddress = config.address;
+
+    this.chainId = Utils.intToHex(config.chainId);
+    this.networkVersion = "" + config.chainId;
+    this.rpc = new RPCServer(config.rpcUrl);
+
+    this.isDebug = !!config.isDebug;
+    this.isProxyRPC = !!config.isProxyRPC;
+  }
+
   setAddress(address) {
-    this.address = (address || "").toLowerCase();
-    this.selectedAddress = this.address;
+    let newAddress = (address || "").toLowerCase();
+    if (this.address !== newAddress) {
+      this.address = newAddress;
+      this.selectedAddress = newAddress;
+
+      this.emitAccountChanged(this.address);
+    }
   }
 
   setChain(chainId, rpcUrl) { 
-    this.chainId = Utils.intToHex(chainId);
-    this.networkVersion = "" + chainId;
-    this.rpc = new RPCServer(rpcUrl);
+    if (this.chainId !== Utils.intToHex(chainId)) {
+      this.chainId = Utils.intToHex(chainId);
+      this.networkVersion = "" + chainId;
+      this.rpc = new RPCServer(rpcUrl);
+
+      this.emitChainChanged(this.chainId);
+    }
   }
 
   setConfig(config) {
@@ -47,6 +66,19 @@ class TrustWeb3Provider extends EventEmitter {
     this.setChain(config.chainId, config.rpcUrl);
     this.isDebug = !!config.isDebug;
     this.isProxyRPC = !!config.isProxyRPC;
+  }
+
+  emitConnect(chainId) {
+    this.emit("connect", { chainId: chainId });
+  }
+
+  emitChainChanged(chainId) {
+    this.emit("chainChanged", chainId);
+    this.emit("networkChanged", chainId);
+  }
+
+  emitAccountChanged(address) {
+    this.emit("accountsChanged", [address]);
   }
 
   request(payload) {
@@ -279,15 +311,6 @@ class TrustWeb3Provider extends EventEmitter {
             .catch(reject);
       }
     });
-  }
-
-  emitConnect(chainId) {
-    this.emit("connect", { chainId: chainId });
-  }
-
-  emitChainChanged(chainId) {
-    this.emit("chainChanged", chainId);
-    this.emit("networkChanged", chainId);
   }
 
   eth_accounts() {
