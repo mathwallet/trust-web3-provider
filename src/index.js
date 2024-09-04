@@ -226,7 +226,7 @@ class TrustWeb3Provider extends EventEmitter {
   _request(payload, wrapResult = true) {
     this.idMapping.tryIntifyId(payload);
     if (this.isDebug) {
-      console.log(`==> _request payload ${JSON.stringify(payload)}, wrapResult: ${wrapResult}`);
+      console.log(`==> rpc request ${JSON.stringify(payload)}`);
     }
     return new Promise((resolve, reject) => {
       if (!payload.id) {
@@ -278,6 +278,8 @@ class TrustWeb3Provider extends EventEmitter {
           return this.wallet_getPermissions(payload);
         case "wallet_requestPermissions":
           return this.wallet_requestPermissions(payload);
+        case "wallet_revokePermissions":
+          return this.wallet_revokePermissions(payload);
         case "eth_newFilter":
         case "eth_newBlockFilter":
         case "eth_newPendingTransactionFilter":
@@ -289,17 +291,11 @@ class TrustWeb3Provider extends EventEmitter {
           );
         default:
           if (this.isProxyRPC) {
-            if (this.isDebug) {
-              console.log(`<== rpc request ${JSON.stringify(payload)} ${wrapResult}`);
-            }
             return this.wallet_rpcCall(payload);
           } 
           // call upstream rpc
           this.callbacks.delete(payload.id);
           this.wrapResults.delete(payload.id);
-          if (this.isDebug) {
-            console.log(`<== rpc request ${JSON.stringify(payload)}`);
-          }
           return this.rpc
             .call(payload)
             .then((response) => {
@@ -407,11 +403,15 @@ class TrustWeb3Provider extends EventEmitter {
   wallet_requestPermissions(payload) {
     this.postMessage("requestPermissions", payload.id, payload.params);
   }
+
+  wallet_revokePermissions(payload) {
+    this.postMessage("revokePermissions", payload.id, payload.params);
+  }
   /**
    * @private Internal js -> native message handler
    */
   postMessage(handler, id, data) {
-    if (this.ready || handler === "requestAccounts" || handler === "addEthereumChain" || handler === "switchEthereumChain" || handler === "getPermissions" || handler === "requestPermissions") {
+    if (this.ready || handler === "requestAccounts" || handler === "addEthereumChain" || handler === "switchEthereumChain" || handler === "getPermissions" || handler === "requestPermissions" || handler === "revokePermissions") {
       // android
       // window["ethWeb3"].postMessage(JSON.stringify({
         // "dapp": {
